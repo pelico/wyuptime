@@ -1,0 +1,13 @@
+name = "status-monitor"
+type = "javascript"
+account_id = "YOUR_ACCOUNT_ID"
+workers_dev = true
+route = "status.example.com/*"  # 可选：自定义域名
+zone_id = "YOUR_ZONE_ID"        # 可选：自定义域名的区域ID
+
+kv_namespaces = [
+  { binding = "STATUS_MONITOR", id = "YOUR_KV_ID" }
+]
+
+[triggers]
+crons = ["*/5 * * * *"]  # 每5分钟执行一次监控
