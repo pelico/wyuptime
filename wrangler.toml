@@ -10,5 +10,11 @@ main = "public/index.html"
 directory = "./dist"
 
 
+kv_namespaces = [
+  { binding = "STATUS_MONITOR", id = "bc6ba94afd6740a6b1032ab973d4e874" }
+]
+
+
+
 [triggers]
 crons = ["*/5 * * * *"]  # 每5分钟执行一次监控
