@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务状态监控系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-heartbeat"></i> 服务状态监控系统</h1>
+            <p>实时监控服务状态，提供历史数据分析和性能图表</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-server"></i> 当前服务状态</h2>
+                    <div id="last-updated">最后更新: 正在加载...</div>
+                </div>
+                <div class="service-list" id="service-list">
+                    <!-- 服务状态动态加载 -->
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-chart-line"></i> 响应时间趋势</h2>
+                    <div class="time-filter" id="time-filter">
+                        <button class="time-btn active" data-days="1">24小时</button>
+                        <button class="time-btn" data-days="7">7天</button>
+                        <button class="time-btn" data-days="30">30天</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="response-time-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-history"></i> 历史可用性</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="availability-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-cog"></i> 系统设置</h2>
+            </div>
+            <div class="settings">
+                <div class="setting-group">
+                    <h3>监控服务配置</h3>
+                    <div id="services-config">
+                        <!-- 服务配置动态加载 -->
+                    </div>
+                    <button id="add-service" class="btn"><i class="fas fa-plus"></i> 添加服务</button>
+                </div>
+                <div class="setting-group">
+                    <h3>监控频率</h3>
+                    <select id="monitoring-frequency">
+                        <option value="5">每5分钟</option>
+                        <option value="10">每10分钟</option>
+                        <option value="15">每15分钟</option>
+                        <option value="30">每30分钟</option>
+                        <option value="60">每1小时</option>
+                    </select>
+                </div>
+                <button id="save-settings" class="btn btn-primary"><i class="fas fa-save"></i> 保存设置</button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>监控系统 • 基于 Cloudflare Workers & KV 部署</p>
+            <p>© 2023 服务状态监控系统 | 数据自动存储于Cloudflare全球网络</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
