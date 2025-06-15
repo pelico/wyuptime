@@ -10,11 +10,5 @@ main = "src/index.ts"
 directory = "./dist"
 
 
-
-
-kv_namespaces = [
-  { binding = "uptime", id = "c2e444664f7c417b9a0f0eb65b77ee0c" }
-]
-
 [triggers]
 crons = ["*/3 * * * *"]  # 每5分钟执行一次监控
