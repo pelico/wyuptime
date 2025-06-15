@@ -1,0 +1,14 @@
+[
+  {
+    "key": "static/index.html",
+    "value": "CONTENT_OF_INDEX.HTML_BASE64_ENCODED"
+  },
+  {
+    "key": "static/style.css",
+    "value": "CONTENT_OF_STYLE.CSS_BASE64_ENCODED"
+  },
+  {
+    "key": "static/script.js",
+    "value": "CONTENT_OF_SCRIPT.JS_BASE64_ENCODED"
+  }
+]
