@@ -1,13 +1,11 @@
 name = "status-monitor"
 type = "javascript"
-account_id = "YOUR_ACCOUNT_ID"
+account_id = "7dcad7e5c925385adde3ce2a3f5bb271"
 workers_dev = true
-route = "status.example.com/*"  # 可选：自定义域名
-zone_id = "YOUR_ZONE_ID"        # 可选：自定义域名的区域ID
 
 kv_namespaces = [
-  { binding = "STATUS_MONITOR", id = "YOUR_KV_ID" }
+  { binding = "uptime", id = "c2e444664f7c417b9a0f0eb65b77ee0c" }
 ]
 
 [triggers]
-crons = ["*/5 * * * *"]  # 每5分钟执行一次监控
+crons = ["*/3 * * * *"]  # 每5分钟执行一次监控
