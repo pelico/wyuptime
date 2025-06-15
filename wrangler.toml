@@ -3,16 +3,12 @@ type = "javascript"
 account_id = "7dcad7e5c925385adde3ce2a3f5bb271"
 workers_dev = true
 compatibility_date = "2025-06-15"
-main = "./index.html"
 
 
 [assets]
 directory = "./dist"
 
 
-kv_namespaces = [
-  { binding = "STATUS_MONITOR", id = "bc6ba94afd6740a6b1032ab973d4e874" }
-]
 
 
 
