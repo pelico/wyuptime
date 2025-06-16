@@ -124,50 +124,39 @@
         const footerElement = document.getElementById('footer');
 
         // --- 辅助函数 ---
-
-        /**
-         * 获取状态对应的文本和CSS类名
-         */
         function getStatusInfo(status) {
             switch (status) {
-                case 0: return { text: '暂停中', className: 'status-paused', labelClassName: 'status-label-paused' };
-                case 1: return { text: '未检测', className: 'status-paused', labelClassName: 'status-label-paused' };
-                case 2: return { text: '正常', className: 'status-up', labelClassName: 'status-label-up' };
-                case 8: return { text: '疑似故障', className: 'status-seems-down', labelClassName: 'status-label-seems-down' };
-                case 9: return { text: '故障', className: 'status-down', labelClassName: 'status-label-down' };
+                case "0": return { text: '暂停中', className: 'status-paused', labelClassName: 'status-label-paused' };
+                case "1": return { text: '未检测', className: 'status-paused', labelClassName: 'status-label-paused' };
+                case "2": return { text: '正常', className: 'status-up', labelClassName: 'status-label-up' };
+                case "8": return { text: '疑似故障', className: 'status-seems-down', labelClassName: 'status-label-seems-down' };
+                case "9": return { text: '故障', className: 'status-down', labelClassName: 'status-label-down' };
                 default: return { text: '未知', className: 'status-paused', labelClassName: 'status-label-paused' };
             }
         }
         
-        /**
-         * 更新页脚的最后更新时间
-         */
         function updateFooter() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
             footerElement.textContent = `最后更新于: ${timeString}`;
         }
 
-        /**
-         * 将监控数据渲染到页面上
-         */
         function displayMonitors(monitors) {
-            listElement.innerHTML = ''; // 清空旧数据
-
+            listElement.innerHTML = '';
             if (!monitors || monitors.length === 0) {
                 listElement.innerHTML = `<div class="monitor-item"><p>没有找到任何监控项。</p></div>`;
                 return;
             }
 
-            // 按状态排序：故障 > 疑似故障 > 暂停 > 正常
             monitors.sort((a, b) => {
-                const order = { 9: 0, 8: 1, 0: 2, 1: 2, 2: 3 };
+                const order = { "9": 0, "8": 1, "0": 2, "1": 2, "2": 3 };
                 return (order[a.status] || 99) - (order[b.status] || 99);
             });
 
-            monitors.forEach(monitor => {
+            monitors.forEach(item => {
+                const monitor = item.monitor; // 旧版 API 的监控项在 item.monitor 中
                 // 只显示网站监控 (type 1 and 2)
-                if (monitor.type !== 1 && monitor.type !== 2) {
+                if (monitor.type !== "1" && monitor.type !== "2") {
                     return;
                 }
                 
@@ -178,7 +167,7 @@
                         <div class="monitor-info">
                             <div class="status-indicator ${statusInfo.className}"></div>
                             <div class="monitor-details">
-                                <div class="monitor-name">${monitor.friendly_name}</div>
+                                <div class="monitor-name">${monitor.friendlyname}</div>
                                 <div class="monitor-url">${monitor.url}</div>
                             </div>
                         </div>
@@ -191,25 +180,22 @@
             });
         }
 
-
         // --- 核心函数 (使用 JSONP) ---
 
         /**
          * 这是 UptimeRobot API 调用后会执行的回调函数。
          * 它必须是全局函数，所以我们将其挂在 window 对象上。
-         * @param {object} data - UptimeRobot 返回的数据
          */
         window.jsonpCallback = function(data) {
             loadingElement.style.display = 'none';
 
             if (data.stat === 'ok') {
-                displayMonitors(data.monitors);
+                displayMonitors(data.monitors.monitor); // 旧版 API 的数组在 data.monitors.monitor
                 updateFooter();
             } else {
-                listElement.innerHTML = `<div class="monitor-item"><p>API 错误: ${data.error.message}</p></div>`;
+                listElement.innerHTML = `<div class="monitor-item"><p>API 错误: ${data.message}</p></div>`;
             }
 
-            // 清理工作，移除临时的 script 标签
             const script = document.getElementById('uptimerobot-jsonp');
             if (script) {
                 script.remove();
@@ -221,15 +207,21 @@
          */
         function fetchData() {
             loadingElement.style.display = 'block';
-            listElement.innerHTML = '';
+
+            // 清理上一次可能失败的请求
+            const oldScript = document.getElementById('uptimerobot-jsonp');
+            if (oldScript) {
+                oldScript.remove();
+            }
 
             const script = document.createElement('script');
             script.id = 'uptimerobot-jsonp';
-            // 注意这里的 URL 参数：format=json&json_callback=jsonpCallback
-            // json_callback 参数告诉 UptimeRobot API 用我们的 `jsonpCallback` 函数来包裹返回的数据
-            script.src = `https://api.uptimerobot.com/v2/getMonitors?api_key=${apiKey}&format=json&json_callback=jsonpCallback&logs=0`;
             
-            // 处理加载错误
+            // 注意: URL 和参数已更正为旧版 (Legacy) API 的格式
+            // URL: https://api.uptimerobot.com/getMonitors (无 /v2)
+            // 参数: apiKey, format, callback
+            script.src = `https://api.uptimerobot.com/getMonitors?apiKey=${apiKey}&format=json&callback=jsonpCallback&logs=0`;
+            
             script.onerror = function() {
                 loadingElement.style.display = 'none';
                 listElement.innerHTML = `<div class="monitor-item"><p>加载 UptimeRobot API 脚本失败。请检查网络连接或浏览器控制台。</div>`;
@@ -238,11 +230,10 @@
             document.head.appendChild(script);
         }
 
-
         // --- 启动 ---
         document.addEventListener('DOMContentLoaded', () => {
-            fetchData(); // 页面加载后立即执行一次
-            setInterval(fetchData, refreshInterval); // 设置定时刷新
+            fetchData();
+            setInterval(fetchData, refreshInterval);
         });
     </script>
 </body>
