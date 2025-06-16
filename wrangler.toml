@@ -1,16 +1,15 @@
-name = "status-monitor"
+name = "wyuptime-api"
 type = "javascript"
 account_id = "7dcad7e5c925385adde3ce2a3f5bb271"
-workers_dev = true
-compatibility_date = "2025-06-15"
 
+[site]
+bucket = "./dist"
+entry-point = "workers-site/index.js"
 
-[assets]
-directory = "./dist"
-
-
-
-
+[[kv_namespaces]]
+binding = "STATUS_KV"
+id = "${STATUS_KV_ID}"
+preview_id = "${STATUS_KV_ID}"
 
 [triggers]
 crons = ["*/5 * * * *"]  # 每5分钟执行一次监控
