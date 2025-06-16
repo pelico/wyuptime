@@ -116,7 +116,6 @@
     <script>
         // --- 配置 ---
         const apiKey = 'ur2985779-cf4fd4918b65d301b3fed1bd';
-        const apiUrl = 'https://api.uptimerobot.com/v2/getMonitors';
         const refreshInterval = 5 * 60 * 1000; // 5分钟刷新一次 (单位：毫秒)
 
         // --- DOM 元素 ---
@@ -124,12 +123,10 @@
         const listElement = document.getElementById('monitor-list');
         const footerElement = document.getElementById('footer');
 
-        // --- 核心函数 ---
+        // --- 辅助函数 ---
 
         /**
          * 获取状态对应的文本和CSS类名
-         * @param {number} status - UptimeRobot返回的状态码
-         * @returns {{text: string, className: string, labelClassName: string}}
          */
         function getStatusInfo(status) {
             switch (status) {
@@ -141,49 +138,22 @@
                 default: return { text: '未知', className: 'status-paused', labelClassName: 'status-label-paused' };
             }
         }
-
+        
         /**
-         * 获取并显示监控数据
+         * 更新页脚的最后更新时间
          */
-        async function fetchAndDisplayMonitors() {
-            loadingElement.style.display = 'block';
-            listElement.innerHTML = ''; // 清空旧数据
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Cache-Control': 'no-cache',
-                    },
-                    body: `api_key=${apiKey}&format=json&logs=0` // logs=0 表示不获取详细日志，加快速度
-                });
-
-                if (!response.ok) {
-                    throw new Error(`网络错误: ${response.status} ${response.statusText}`);
-                }
-
-                const data = await response.json();
-
-                if (data.stat === 'fail') {
-                    throw new Error(`API 错误: ${data.error.message}`);
-                }
-
-                displayMonitors(data.monitors);
-                updateFooter();
-
-            } catch (error) {
-                listElement.innerHTML = `<div class="monitor-item"><p>数据加载失败: ${error.message}</p></div>`;
-            } finally {
-                loadingElement.style.display = 'none';
-            }
+        function updateFooter() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+            footerElement.textContent = `最后更新于: ${timeString}`;
         }
 
         /**
          * 将监控数据渲染到页面上
-         * @param {Array} monitors - 从API获取的监控对象数组
          */
         function displayMonitors(monitors) {
+            listElement.innerHTML = ''; // 清空旧数据
+
             if (!monitors || monitors.length === 0) {
                 listElement.innerHTML = `<div class="monitor-item"><p>没有找到任何监控项。</p></div>`;
                 return;
@@ -198,7 +168,7 @@
             monitors.forEach(monitor => {
                 // 只显示网站监控 (type 1 and 2)
                 if (monitor.type !== 1 && monitor.type !== 2) {
-                    return; // 跳过非网站监控类型
+                    return;
                 }
                 
                 const statusInfo = getStatusInfo(monitor.status);
@@ -220,22 +190,60 @@
                 listElement.insertAdjacentHTML('beforeend', itemHTML);
             });
         }
+
+
+        // --- 核心函数 (使用 JSONP) ---
+
+        /**
+         * 这是 UptimeRobot API 调用后会执行的回调函数。
+         * 它必须是全局函数，所以我们将其挂在 window 对象上。
+         * @param {object} data - UptimeRobot 返回的数据
+         */
+        window.jsonpCallback = function(data) {
+            loadingElement.style.display = 'none';
+
+            if (data.stat === 'ok') {
+                displayMonitors(data.monitors);
+                updateFooter();
+            } else {
+                listElement.innerHTML = `<div class="monitor-item"><p>API 错误: ${data.error.message}</p></div>`;
+            }
+
+            // 清理工作，移除临时的 script 标签
+            const script = document.getElementById('uptimerobot-jsonp');
+            if (script) {
+                script.remove();
+            }
+        }
         
         /**
-         * 更新页脚的最后更新时间
+         * 通过动态创建 script 标签来发起 JSONP 请求
          */
-        function updateFooter() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
-            footerElement.textContent = `最后更新于: ${timeString}`;
+        function fetchData() {
+            loadingElement.style.display = 'block';
+            listElement.innerHTML = '';
+
+            const script = document.createElement('script');
+            script.id = 'uptimerobot-jsonp';
+            // 注意这里的 URL 参数：format=json&json_callback=jsonpCallback
+            // json_callback 参数告诉 UptimeRobot API 用我们的 `jsonpCallback` 函数来包裹返回的数据
+            script.src = `https://api.uptimerobot.com/v2/getMonitors?api_key=${apiKey}&format=json&json_callback=jsonpCallback&logs=0`;
+            
+            // 处理加载错误
+            script.onerror = function() {
+                loadingElement.style.display = 'none';
+                listElement.innerHTML = `<div class="monitor-item"><p>加载 UptimeRobot API 脚本失败。请检查网络连接或浏览器控制台。</div>`;
+            };
+
+            document.head.appendChild(script);
         }
+
 
         // --- 启动 ---
         document.addEventListener('DOMContentLoaded', () => {
-            fetchAndDisplayMonitors(); // 页面加载后立即执行一次
-            setInterval(fetchAndDisplayMonitors, refreshInterval); // 设置定时刷新
+            fetchData(); // 页面加载后立即执行一次
+            setInterval(fetchData, refreshInterval); // 设置定时刷新
         });
-
     </script>
 </body>
 </html>
