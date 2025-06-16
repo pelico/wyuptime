@@ -108,66 +108,93 @@
 
     <div class="container">
         <h1>UptimeRobot 监控状态</h1>
-        <div id="loading">正在从 UptimeRobot 加载数据...</div>
+        <div id="loading">正在加载数据...</div>
         <div id="monitor-list" class="monitor-list"></div>
         <footer id="footer"></footer>
     </div>
 
     <script>
         // --- 配置 ---
-        const apiKey = 'ur2985779-cf4fd4918b65d301b3fed1bd';
-        const refreshInterval = 5 * 60 * 1000; // 5分钟刷新一次 (单位：毫秒)
+        // !!! 将这里的 URL 替换为您在 Cloudflare 上创建的 Worker 的 URL !!!
+        const proxyApiUrl = 'https://your-worker-name.your-account.workers.dev';
+        const refreshInterval = 5 * 60 * 1000; // 5分钟
 
         // --- DOM 元素 ---
         const loadingElement = document.getElementById('loading');
         const listElement = document.getElementById('monitor-list');
         const footerElement = document.getElementById('footer');
-
-        // --- 辅助函数 ---
+        
+        // --- 核心函数 ---
         function getStatusInfo(status) {
             switch (status) {
-                case "0": return { text: '暂停中', className: 'status-paused', labelClassName: 'status-label-paused' };
-                case "1": return { text: '未检测', className: 'status-paused', labelClassName: 'status-label-paused' };
-                case "2": return { text: '正常', className: 'status-up', labelClassName: 'status-label-up' };
-                case "8": return { text: '疑似故障', className: 'status-seems-down', labelClassName: 'status-label-seems-down' };
-                case "9": return { text: '故障', className: 'status-down', labelClassName: 'status-label-down' };
+                case 0: return { text: '暂停中', className: 'status-paused', labelClassName: 'status-label-paused' };
+                case 1: return { text: '未检测', className: 'status-paused', labelClassName: 'status-label-paused' };
+                case 2: return { text: '正常', className: 'status-up', labelClassName: 'status-label-up' };
+                case 8: return { text: '疑似故障', className: 'status-seems-down', labelClassName: 'status-label-seems-down' };
+                case 9: return { text: '故障', className: 'status-down', labelClassName: 'status-label-down' };
                 default: return { text: '未知', className: 'status-paused', labelClassName: 'status-label-paused' };
             }
         }
-        
-        function updateFooter() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
-            footerElement.textContent = `最后更新于: ${timeString}`;
+
+        async function fetchAndDisplayMonitors() {
+            // 检查用户是否已替换代理URL
+            if (proxyApiUrl.includes('your-worker-name')) {
+                loadingElement.textContent = '错误：请在HTML代码中替换为您的Cloudflare Worker URL！';
+                loadingElement.style.color = 'red';
+                return;
+            }
+
+            loadingElement.style.display = 'block';
+            listElement.innerHTML = '';
+
+            try {
+                // 现在我们请求自己的代理，而不是UptimeRobot
+                const response = await fetch(proxyApiUrl, {
+                    method: 'POST', // 代理需要POST请求
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`网络错误: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.stat === 'fail') {
+                    throw new Error(`API 错误: ${data.error.message}`);
+                }
+
+                displayMonitors(data.monitors);
+                updateFooter();
+
+            } catch (error) {
+                listElement.innerHTML = `<div class="monitor-item"><p>数据加载失败: ${error.message}</p></div>`;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
         }
 
         function displayMonitors(monitors) {
-            listElement.innerHTML = '';
             if (!monitors || monitors.length === 0) {
                 listElement.innerHTML = `<div class="monitor-item"><p>没有找到任何监控项。</p></div>`;
                 return;
             }
 
             monitors.sort((a, b) => {
-                const order = { "9": 0, "8": 1, "0": 2, "1": 2, "2": 3 };
+                const order = { 9: 0, 8: 1, 0: 2, 1: 2, 2: 3 };
                 return (order[a.status] || 99) - (order[b.status] || 99);
             });
 
-            monitors.forEach(item => {
-                const monitor = item.monitor; // 旧版 API 的监控项在 item.monitor 中
-                // 只显示网站监控 (type 1 and 2)
-                if (monitor.type !== "1" && monitor.type !== "2") {
-                    return;
-                }
+            monitors.forEach(monitor => {
+                if (monitor.type !== 1 && monitor.type !== 2) return;
                 
                 const statusInfo = getStatusInfo(monitor.status);
-
                 const itemHTML = `
                     <div class="monitor-item">
                         <div class="monitor-info">
                             <div class="status-indicator ${statusInfo.className}"></div>
                             <div class="monitor-details">
-                                <div class="monitor-name">${monitor.friendlyname}</div>
+                                <div class="monitor-name">${monitor.friendly_name}</div>
                                 <div class="monitor-url">${monitor.url}</div>
                             </div>
                         </div>
@@ -179,61 +206,17 @@
                 listElement.insertAdjacentHTML('beforeend', itemHTML);
             });
         }
-
-        // --- 核心函数 (使用 JSONP) ---
-
-        /**
-         * 这是 UptimeRobot API 调用后会执行的回调函数。
-         * 它必须是全局函数，所以我们将其挂在 window 对象上。
-         */
-        window.jsonpCallback = function(data) {
-            loadingElement.style.display = 'none';
-
-            if (data.stat === 'ok') {
-                displayMonitors(data.monitors.monitor); // 旧版 API 的数组在 data.monitors.monitor
-                updateFooter();
-            } else {
-                listElement.innerHTML = `<div class="monitor-item"><p>API 错误: ${data.message}</p></div>`;
-            }
-
-            const script = document.getElementById('uptimerobot-jsonp');
-            if (script) {
-                script.remove();
-            }
-        }
         
-        /**
-         * 通过动态创建 script 标签来发起 JSONP 请求
-         */
-        function fetchData() {
-            loadingElement.style.display = 'block';
-
-            // 清理上一次可能失败的请求
-            const oldScript = document.getElementById('uptimerobot-jsonp');
-            if (oldScript) {
-                oldScript.remove();
-            }
-
-            const script = document.createElement('script');
-            script.id = 'uptimerobot-jsonp';
-            
-            // 注意: URL 和参数已更正为旧版 (Legacy) API 的格式
-            // URL: https://api.uptimerobot.com/getMonitors (无 /v2)
-            // 参数: apiKey, format, callback
-            script.src = `https://api.uptimerobot.com/getMonitors?apiKey=${apiKey}&format=json&callback=jsonpCallback&logs=0`;
-            
-            script.onerror = function() {
-                loadingElement.style.display = 'none';
-                listElement.innerHTML = `<div class="monitor-item"><p>加载 UptimeRobot API 脚本失败。请检查网络连接或浏览器控制台。</div>`;
-            };
-
-            document.head.appendChild(script);
+        function updateFooter() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+            footerElement.textContent = `最后更新于: ${timeString}`;
         }
 
         // --- 启动 ---
         document.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-            setInterval(fetchData, refreshInterval);
+            fetchAndDisplayMonitors();
+            setInterval(fetchAndDisplayMonitors, refreshInterval);
         });
     </script>
 </body>
