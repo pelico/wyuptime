@@ -15,6 +15,7 @@ export default {
       }
     }
 
-    return await getAssetFromKV(event);
+    // Serve static assets
+    return await getAssetFromKV(request);
   },
 };
