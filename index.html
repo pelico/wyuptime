@@ -3,93 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>服务状态监控</title>
+  <title>望川的网页状态跟踪</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --primary: #1a237e;
-      --primary-light: #303f9f;
-      --success: #4caf50;
-      --danger: #f44336;
-      --warning: #ff9800;
-      --dark: #121a26;
-      --light: #f5f7fa;
-      --card-bg: #ffffff;
+      --primary: #1a237e; --primary-light: #303f9f; --success: #4caf50; --danger: #f44336;
+      --warning: #ff9800; --dark: #121a26; --light: #f5f7fa; --card-bg: #ffffff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #f0f4f8 0%, #e6eef7 100%);
-      color: #333;
-      line-height: 1.6;
-      min-height: 100vh;
-      padding: 20px;
-      background-attachment: fixed;
-    }
+    body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #f0f4f8 0%, #e6eef7 100%); color: #333; line-height: 1.6; min-height: 100vh; padding: 20px; background-attachment: fixed; }
     .container { max-width: 1200px; margin: 0 auto; }
-    header {
-      text-align: center; margin-bottom: 40px; padding: 40px 20px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      border-radius: 20px; box-shadow: 0 10px 30px rgba(26, 35, 126, 0.2);
-      color: white; position: relative; overflow: hidden;
-    }
-    header::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
-      background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
-    }
-    .logo {
-      display: inline-flex; align-items: center; gap: 15px;
-      background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
-      padding: 15px 40px; border-radius: 50px; margin-bottom: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .logo-icon { font-size: 32px; }
-    .logo-text { font-size: 28px; font-weight: 700; }
+    header { text-align: center; margin-bottom: 40px; padding: 40px 20px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 20px; box-shadow: 0 10px 30px rgba(26, 35, 126, 0.2); color: white; position: relative; overflow: hidden; }
+    header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--success), var(--warning), var(--danger)); }
+    .logo { display: inline-flex; align-items: center; gap: 15px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); padding: 15px 40px; border-radius: 50px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.2); }
+    .logo-icon { font-size: 32px; } .logo-text { font-size: 28px; font-weight: 700; }
     .subtitle { font-size: 18px; opacity: 0.9; max-width: 600px; margin: 0 auto 25px; line-height: 1.6; }
     .header-stats { display: flex; justify-content: center; gap: 30px; margin-top: 20px; flex-wrap: wrap; }
-    .stat-item {
-      background: rgba(255, 255, 255, 0.15); padding: 12px 25px; border-radius: 50px;
-      display: flex; align-items: center; gap: 10px; font-size: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+    .stat-item { background: rgba(255, 255, 255, 0.15); padding: 12px 25px; border-radius: 50px; display: flex; align-items: center; gap: 10px; font-size: 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
     .stat-value { font-weight: 700; font-size: 18px; }
-    .refresh-btn {
-      background: white; color: var(--primary); border: none; padding: 12px 30px;
-      border-radius: 50px; font-size: 16px; font-weight: 600; cursor: pointer;
-      margin-top: 20px; display: inline-flex; align-items: center; gap: 10px;
-      transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    }
+    .refresh-btn { background: white; color: var(--primary); border: none; padding: 12px 30px; border-radius: 50px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 20px; display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); }
     .refresh-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); }
     .status-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 40px; }
-    .summary-card {
-      background: var(--card-bg); border-radius: 16px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      padding: 30px; text-align: center; transition: all 0.3s ease;
-      border-top: 4px solid var(--success); position: relative; overflow: hidden;
-    }
-    .summary-card.uptime { border-top-color: #00bcd4; }
-    .summary-card.incidents { border-top-color: var(--danger); }
-    .card-icon {
-      width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; margin: 0 auto 20px; font-size: 30px;
-    }
+    .summary-card { background: var(--card-bg); border-radius: 16px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); padding: 30px; text-align: center; transition: all 0.3s ease; border-top: 4px solid var(--success); position: relative; overflow: hidden; }
+    .summary-card.uptime { border-top-color: #00bcd4; } .summary-card.incidents { border-top-color: var(--danger); }
+    .card-icon { width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; }
     .status .card-icon { background: rgba(76, 175, 80, 0.15); color: var(--success); }
     .uptime .card-icon { background: rgba(0, 188, 212, 0.15); color: #00bcd4; }
     .incidents .card-icon { background: rgba(244, 67, 54, 0.15); color: var(--danger); }
     .card-title { font-size: 18px; color: #666; margin-bottom: 10px; font-weight: 500; }
     .card-value { font-size: 40px; font-weight: 700; margin-bottom: 5px; }
-    .status .card-value { color: var(--success); }
-    .uptime .card-value { color: #00bcd4; }
-    .incidents .card-value { color: var(--danger); }
+    .status .card-value { color: var(--success); } .uptime .card-value { color: #00bcd4; } .incidents .card-value { color: var(--danger); }
     .card-desc { color: #777; font-size: 15px; margin-top: 10px; }
     .services-grid { background: var(--card-bg); border-radius: 16px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); overflow: hidden; margin-bottom: 50px; }
-    .services-header {
-      background: var(--primary); color: white; padding: 20px 30px; font-size: 20px; font-weight: 600;
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;
-    }
+    .services-header { background: var(--primary); color: white; padding: 20px 30px; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
     .service-card { padding: 30px; border-bottom: 1px solid #eee; transition: all 0.3s ease; }
-    .service-card:hover { background-color: rgba(76, 175, 80, 0.03); }
-    .service-card:last-child { border-bottom: none; }
+    .service-card:hover { background-color: rgba(76, 175, 80, 0.03); } .service-card:last-child { border-bottom: none; }
     .service-header { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
     .service-name { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
     .service-status { display: flex; align-items: center; font-size: 16px; font-weight: 500; padding: 8px 20px; border-radius: 30px; }
@@ -102,9 +51,7 @@
     .meta-value { font-weight: 600; font-size: 16px; word-break: break-all; }
     .timeline { height: 14px; display: flex; border-radius: 7px; overflow: hidden; margin-top: 25px; background: #f0f4f8; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
     .timeline span { height: 100%; flex-grow: 1; margin: 0 1px; }
-    .timeline-up { background: var(--success); }
-    .timeline-down { background: var(--danger); }
-    .timeline-warning { background: var(--warning); }
+    .timeline-up { background: var(--success); } .timeline-down { background: var(--danger); } .timeline-warning { background: var(--warning); }
     .charts-section { margin-bottom: 40px; }
     .section-title { font-size: 24px; font-weight: 600; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; color: var(--primary); }
     .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 25px; margin-bottom: 30px; }
@@ -112,159 +59,78 @@
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .chart-title { font-size: 18px; font-weight: 600; }
     .chart-wrapper { height: 300px; position: relative; }
-    footer {
-      text-align: center; padding: 30px 0; color: #666; font-size: 15px;
-      background: rgba(255, 255, 255, 0.7); border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-top: 20px;
-    }
+    footer { text-align: center; padding: 30px 0; color: #666; font-size: 15px; background: rgba(255, 255, 255, 0.7); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-top: 20px; }
     .footer-links { margin-top: 15px; display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; }
     .footer-links a { color: var(--primary); text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 8px; }
     .footer-links a:hover { text-decoration: underline; }
     .loading { text-align: center; padding: 60px 0; color: #666; }
-    .loading-spinner {
-      width: 60px; height: 60px; border: 5px solid rgba(26, 35, 126, 0.1);
-      border-top: 5px solid var(--primary); border-radius: 50%;
-      margin: 0 auto 20px; animation: spin 1s linear infinite;
-    }
+    .loading-spinner { width: 60px; height: 60px; border: 5px solid rgba(26, 35, 126, 0.1); border-top: 5px solid var(--primary); border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error-box { background: #fff0f0; border-radius: 16px; padding: 40px; text-align: center; margin: 30px; border: 1px solid #ffcccc; }
     .error-icon { font-size: 56px; color: var(--danger); margin-bottom: 20px; }
     .error-title { font-size: 24px; color: var(--danger); margin-bottom: 15px; }
     .error-desc { margin-bottom: 25px; line-height: 1.6; font-size: 16px; }
-    @media (max-width: 768px) {
-      .status-summary, .charts-grid { grid-template-columns: 1fr; }
-      .logo { padding: 12px 25px; } .logo-text { font-size: 22px; }
-      .header-stats { flex-direction: column; align-items: center; }
-    }
-    @media (max-width: 480px) {
-      .service-meta { grid-template-columns: 1fr; }
-      .logo { flex-direction: column; gap: 10px; }
-      .service-header { flex-direction: column; }
-      .service-status { align-self: flex-start; }
-    }
+    @media (max-width: 768px) { .status-summary, .charts-grid { grid-template-columns: 1fr; } .logo { padding: 12px 25px; } .logo-text { font-size: 22px; } .header-stats { flex-direction: column; align-items: center; } }
+    @media (max-width: 480px) { .service-meta { grid-template-columns: 1fr; } .logo { flex-direction: column; gap: 10px; } .service-header { flex-direction: column; } .service-status { align-self: flex-start; } }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="logo">
-        <div class="logo-icon"><i class="fas fa-heartbeat"></i></div>
-        <div class="logo-text">服务状态监控</div>
-      </div>
-      <p class="subtitle">基于 UptimeRobot API 的实时监控仪表盘</p>
+      <div class="logo"><i class="fas fa-heartbeat"></i><div class="logo-text">服务状态监控</div></div>
+      <p class="subtitle">基于 UptimeRobot API 的实时监控仪表盘，由望川使用AI服务搭建</p>
       <div class="header-stats">
         <div class="stat-item"><i class="fas fa-sync-alt"></i>最后更新: <span id="update-time" class="stat-value">正在加载...</span></div>
         <div class="stat-item"><i class="fas fa-database"></i>监控服务: <span id="total-monitors" class="stat-value">0</span> 个</div>
       </div>
       <button class="refresh-btn" id="refresh-btn"><i class="fas fa-sync-alt"></i> 刷新数据</button>
     </header>
-    
     <div class="status-summary">
-      <div class="summary-card status">
-        <div class="card-icon"><i class="fas fa-check-circle"></i></div>
-        <div class="card-title">正常运行</div><div class="card-value" id="status-up">0</div>
-        <div class="card-desc">当前正常运行的服务数量</div>
-      </div>
-      <div class="summary-card uptime">
-        <div class="card-icon"><i class="fas fa-chart-line"></i></div>
-        <div class="card-title">平均正常运行率</div><div class="card-value" id="avg-uptime">0%</div>
-        <div class="card-desc">所有服务的平均在线率</div>
-      </div>
-      <div class="summary-card incidents">
-        <div class="card-icon"><i class="fas fa-times-circle"></i></div>
-        <div class="card-title">当前故障</div><div class="card-value" id="status-down">0</div>
-        <div class="card-desc">需要关注的问题服务</div>
-      </div>
+      <div class="summary-card status"><div class="card-icon"><i class="fas fa-check-circle"></i></div><div class="card-title">正常运行</div><div class="card-value" id="status-up">0</div><div class="card-desc">当前正常运行的服务数量</div></div>
+      <div class="summary-card uptime"><div class="card-icon"><i class="fas fa-chart-line"></i></div><div class="card-title">平均正常运行率</div><div class="card-value" id="avg-uptime">0%</div><div class="card-desc">所有服务的平均在线率</div></div>
+      <div class="summary-card incidents"><div class="card-icon"><i class="fas fa-times-circle"></i></div><div class="card-title">当前故障</div><div class="card-value" id="status-down">0</div><div class="card-desc">需要关注的问题服务</div></div>
     </div>
-    
     <div class="services-grid">
-      <div class="services-header">
-        <div><i class="fas fa-server"></i><span>监控服务列表</span></div>
-        <div>
-          <i class="fas fa-circle" style="color: var(--success);"></i> 正常
-          <i class="fas fa-circle" style="color: var(--warning); margin-left: 15px;"></i> 警告
-          <i class="fas fa-circle" style="color: var(--danger); margin-left: 15px;"></i> 故障
-        </div>
-      </div>
-      <div id="services-container">
-        <div class="loading"><div class="loading-spinner"></div><p>正在从 API 代理加载监控数据...</p></div>
-      </div>
+      <div class="services-header"><div><i class="fas fa-server"></i><span>监控服务列表</span></div><div><i class="fas fa-circle" style="color: var(--success);"></i> 正常 <i class="fas fa-circle" style="color: var(--warning); margin-left: 15px;"></i> 警告 <i class="fas fa-circle" style="color: var(--danger); margin-left: 15px;"></i> 故障</div></div>
+      <div id="services-container"><div class="loading"><div class="loading-spinner"></div><p>正在从 API 代理加载监控数据...</p></div></div>
     </div>
-    
     <div class="charts-section">
       <h2 class="section-title"><i class="fas fa-chart-bar"></i><span>服务状态分析</span></h2>
       <div class="charts-grid">
-        <div class="chart-container">
-          <div class="chart-header"><h3 class="chart-title">服务状态分布</h3></div>
-          <div class="chart-wrapper"><canvas id="statusChart"></canvas></div>
-        </div>
-        <div class="chart-container">
-          <div class="chart-header"><h3 class="chart-title">响应时间分布 (最近一次)</h3></div>
-          <div class="chart-wrapper"><canvas id="responseTimeChart"></canvas></div>
-        </div>
+        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">服务状态分布</h3></div><div class="chart-wrapper"><canvas id="statusChart"></canvas></div></div>
+        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">响应时间分布 (最近一次)</h3></div><div class="chart-wrapper"><canvas id="responseTimeChart"></canvas></div></div>
       </div>
     </div>
-    
-    <footer>
-      <p>监控服务由 UptimeRobot API 提供支持</p>
-    </footer>
+    <footer><p>监控服务由 UptimeRobot API 提供支持</p></footer>
   </div>
-  
   <script>
-    // --- 配置 ---
-    // 您的 Cloudflare Worker 代理 URL
-    const PROXY_API_URL = 'https://up-api.111312.xyz/';
-
-    // --- 状态映射 (已根据 V2 API 修正) ---
+    const PROXY_API_URL = 'https://up-api.111312.xyz/'; // 您的 Cloudflare Worker 代理 URL
     const STATUS_MAP = {
-      0: { text: '暂停中', class: 'status-warning', icon: 'fa-pause-circle' },
-      1: { text: '未检查', class: 'status-warning', icon: 'fa-question-circle' },
-      2: { text: '运行中', class: 'status-up', icon: 'fa-check-circle' },
-      8: { text: '疑似故障', class: 'status-warning', icon: 'fa-exclamation-circle' },
+      0: { text: '暂停中', class: 'status-warning', icon: 'fa-pause-circle' }, 1: { text: '未检查', class: 'status-warning', icon: 'fa-question-circle' },
+      2: { text: '运行中', class: 'status-up', icon: 'fa-check-circle' }, 8: { text: '疑似故障', class: 'status-warning', icon: 'fa-exclamation-circle' },
       9: { text: '服务中断', class: 'status-down', icon: 'fa-times-circle' },
     };
+    let statusChartInstance = null, responseTimeChartInstance = null;
     
-    let statusChartInstance = null;
-    let responseTimeChartInstance = null;
-
-    // --- 核心数据获取函数 (已修正) ---
     async function fetchMonitors() {
       try {
-        const response = await fetch(PROXY_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
+        const response = await fetch(PROXY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
         if (!response.ok) throw new Error(`API代理请求失败: ${response.status} ${response.statusText}`);
-        
         const data = await response.json();
         if (data.stat !== 'ok') throw new Error(`UptimeRobot API 返回错误: ${data.error?.message || '未知错误'}`);
-        
         return data;
-      } catch (error) {
-        console.error('获取监控数据失败:', error);
-        showError(error.message);
-        return null;
-      }
+      } catch (error) { console.error('获取监控数据失败:', error); showError(error.message); return null; }
     }
 
-    // --- 辅助函数 ---
-    const calculateUptime = monitor => `${parseFloat(monitor.custom_uptime_ratio || monitor.all_time_uptime_ratio || 0).toFixed(2)}%`;
+    // --- 【修正】此函数现在优先使用 custom_uptime_ratios，因为它更实时 ---
+    const getUptimeRatio = monitor => parseFloat(monitor.custom_uptime_ratios?.split('-')[0] || monitor.all_time_uptime_ratio || 0);
     const formatResponseTime = time => time ? `${Math.round(time)}ms` : 'N/A';
     const formatTime = timestamp => new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
 
-    // --- 渲染函数 (已根据 V2 API 字段调整) ---
     function renderMonitors(data) {
-      if (!data || !data.monitors) {
-        showError('API返回的数据格式不正确');
-        return;
-      }
-      
-      const monitors = data.monitors.filter(m => m.type === 1 || m.type === 2); // 只显示网站监控
-      let upCount = 0;
-      let downCount = 0;
-      let warningCount = 0;
-      let totalUptime = 0;
+      if (!data || !data.monitors) { showError('API返回的数据格式不正确'); return; }
+      const monitors = data.monitors.filter(m => m.type === 1 || m.type === 2);
+      let upCount = 0, downCount = 0, warningCount = 0, totalUptime = 0;
       
       document.getElementById('update-time').textContent = new Date().toLocaleTimeString();
       document.getElementById('total-monitors').textContent = `${monitors.length} 个`;
@@ -272,32 +138,29 @@
       const servicesHTML = monitors.map(monitor => {
         const status = STATUS_MAP[monitor.status] || { text: '未知', class: 'status-warning', icon: 'fa-question-circle' };
         
-        const uptime = calculateUptime(monitor);
+        // --- 【修正】直接从原始数据计算，而不是从格式化后的字符串 ---
+        const uptimeRatio = getUptimeRatio(monitor);
+        const uptimeForDisplay = `${uptimeRatio.toFixed(2)}%`;
+        totalUptime += uptimeRatio; // 累加原始数值
+        
         const lastCheck = monitor.logs && monitor.logs.length > 0 ? formatTime(monitor.logs[0].datetime) : 'N/A';
         const responseTime = monitor.response_times && monitor.response_times.length > 0 ? formatResponseTime(monitor.response_times[0].value) : 'N/A';
         
         if (status.class === 'status-up') upCount++;
         else if (status.class === 'status-down') downCount++;
         else warningCount++;
-        totalUptime += parseFloat(uptime) || 0;
         
-        // 随机生成的时间线，仅为美观
         const timelineHTML = Array(30).fill(0).map(() => `<span class="${Math.random() > 0.05 ? 'timeline-up' : 'timeline-down'}"></span>`).join('');
         
         return `
           <div class="service-card">
-            <div class="service-header">
-              <div class="service-name"><i class="fas fa-globe-asia"></i> ${monitor.friendly_name}</div>
-              <div class="service-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.text}</div>
-            </div>
+            <div class="service-header"><div class="service-name"><i class="fas fa-globe-asia"></i> ${monitor.friendly_name}</div><div class="service-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.text}</div></div>
             <div class="service-meta">
-              <div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 正常运行率</span><span class="meta-value">${uptime}</span></div>
+              <div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 正常运行率</span><span class="meta-value">${uptimeForDisplay}</span></div>
               <div class="meta-item"><span class="meta-label"><i class="fas fa-stopwatch"></i> 响应时间</span><span class="meta-value">${responseTime}</span></div>
               <div class="meta-item"><span class="meta-label"><i class="fas fa-clock"></i> 最后检查</span><span class="meta-value">${lastCheck}</span></div>
               <div class="meta-item"><span class="meta-label"><i class="fas fa-link"></i> 服务地址</span><span class="meta-value">${monitor.url}</span></div>
-            </div>
-            <div class="timeline">${timelineHTML}</div>
-          </div>`;
+            </div><div class="timeline">${timelineHTML}</div></div>`;
       }).join('');
       
       document.getElementById('services-container').innerHTML = servicesHTML || '<div class="loading"><p>没有找到网站监控服务。</p></div>';
@@ -309,62 +172,22 @@
       renderCharts(monitors, { up: upCount, warning: warningCount, down: downCount });
     }
     
-    // --- 图表渲染函数 ---
     function renderCharts(monitors, counts) {
       if (statusChartInstance) statusChartInstance.destroy();
       if (responseTimeChartInstance) responseTimeChartInstance.destroy();
-
       const statusCtx = document.getElementById('statusChart').getContext('2d');
-      statusChartInstance = new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['正常', '警告', '故障'],
-          datasets: [{
-            data: [counts.up, counts.warning, counts.down],
-            backgroundColor: [ 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)', 'rgba(244, 67, 54, 0.8)' ],
-            borderColor: ['#fff'], borderWidth: 2
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-      });
-      
+      statusChartInstance = new Chart(statusCtx, { type: 'doughnut', data: { labels: ['正常', '警告', '故障'], datasets: [{ data: [counts.up, counts.warning, counts.down], backgroundColor: [ 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)', 'rgba(244, 67, 54, 0.8)' ], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
       const responseCtx = document.getElementById('responseTimeChart').getContext('2d');
-      responseTimeChartInstance = new Chart(responseCtx, {
-        type: 'bar',
-        data: {
-          labels: monitors.map(m => m.friendly_name.substring(0, 12) + '...'),
-          datasets: [{
-            label: '响应时间 (ms)',
-            data: monitors.map(m => m.response_times && m.response_times.length > 0 ? m.response_times[0].value : 0),
-            backgroundColor: 'rgba(30, 136, 229, 0.7)',
-            borderColor: 'rgba(30, 136, 229, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-      });
+      responseTimeChartInstance = new Chart(responseCtx, { type: 'bar', data: { labels: monitors.map(m => m.friendly_name.substring(0, 12) + (m.friendly_name.length > 12 ? '...' : '')), datasets: [{ label: '响应时间 (ms)', data: monitors.map(m => m.response_times && m.response_times.length > 0 ? m.response_times[0].value : 0), backgroundColor: 'rgba(30, 136, 229, 0.7)', borderColor: 'rgba(30, 136, 229, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
     }
     
-    function showError(message) {
-      document.getElementById('services-container').innerHTML = `
-        <div class="error-box">
-          <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
-          <h2 class="error-title">加载数据失败</h2>
-          <p class="error-desc">${message}</p>
-        </div>`;
-    }
-    
+    function showError(message) { document.getElementById('services-container').innerHTML = `<div class="error-box"><div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div><h2 class="error-title">加载数据失败</h2><p class="error-desc">${message}</p></div>`; }
     async function init() {
       document.getElementById('services-container').innerHTML = `<div class="loading"><div class="loading-spinner"></div><p>正在从 API 代理加载监控数据...</p></div>`;
       const data = await fetchMonitors();
       if (data) renderMonitors(data);
     }
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      init();
-      document.getElementById('refresh-btn').addEventListener('click', init);
-      setInterval(init, 5 * 60 * 1000); // 每5分钟自动刷新
-    });
+    document.addEventListener('DOMContentLoaded', () => { init(); document.getElementById('refresh-btn').addEventListener('click', init); setInterval(init, 5 * 60 * 1000); });
   </script>
 </body>
 </html>
