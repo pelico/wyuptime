@@ -40,7 +40,7 @@
     .services-header { background: var(--primary); color: white; padding: 20px 30px; font-size: 20px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
     .service-card { padding: 25px 30px; border-bottom: 1px solid #eee; }
     .service-card:last-child { border-bottom: none; }
-    .service-card-header { cursor: pointer; transition: background-color 0.2s ease; }
+    .service-card-header { cursor: pointer; transition: background-color 0.2s ease; border-radius: 8px; }
     .service-card-header:hover { background-color: #f9f9f9; }
     .service-header { display: flex; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
     .service-name { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
@@ -50,8 +50,9 @@
     .status-up { background: rgba(76, 175, 80, 0.15); color: var(--success); }
     .status-down { background: rgba(244, 67, 54, 0.15); color: var(--danger); }
     .status-warning { background: rgba(255, 152, 0, 0.15); color: var(--warning); }
-    .service-details { display: none; padding-top: 20px; border-top: 1px solid #f0f0f0; margin-top: 20px; }
-    .service-card.expanded .service-details { display: block; }
+    .service-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
+    .service-card.expanded .service-details { max-height: 500px; }
+    .service-details-content { padding-top: 20px; border-top: 1px solid #f0f0f0; margin-top: 20px; }
     .service-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px 25px; }
     .meta-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #eee; }
     .meta-label { color: #666; display: flex; align-items: center; gap: 10px; font-size: 15px; }
@@ -109,14 +110,12 @@
       2: { text: '运行中', class: 'status-up', icon: 'fa-check-circle' }, 8: { text: '疑似故障', class: 'status-warning', icon: 'fa-exclamation-circle' },
       9: { text: '服务中断', class: 'status-down', icon: 'fa-times-circle' },
     };
-    let statusChartInstance, responseTimeChartInstance;
-    let monitorDataCache = []; // 用于缓存API数据
+    const RESPONSE_TIME_THRESHOLD = 1000; // 响应时间阈值 (ms)，超过此值标记为异常
+    let monitorDataCache = [];
 
-    async function fetchMonitors() { /* ... (函数体未变，保持原样) ... */ }
-    
-    // --- 渲染服务列表，添加了展开/收起功能 ---
+    // --- HTML 渲染 ---
     function renderMonitors(data) {
-      monitorDataCache = data.monitors; // 缓存数据
+      monitorDataCache = data.monitors;
       const monitors = monitorDataCache.filter(m => m.type === 1 || m.type === 2);
       let upCount = 0, downCount = 0, warningCount = 0, totalUptime = 0;
       
@@ -133,61 +132,53 @@
           <div class="service-card" id="monitor-card-${monitor.id}">
             <div class="service-card-header" onclick="toggleDetailChart(${monitor.id})">
               <div class="service-header">
-                <div class="service-name">
-                  ${monitor.friendly_name}
-                  <i class="fas fa-chevron-down"></i>
-                </div>
+                <div class="service-name">${monitor.friendly_name}<i class="fas fa-chevron-down"></i></div>
                 <div class="service-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.text}</div>
               </div>
             </div>
             <div class="service-details">
-              <div class="service-meta">
-                 <div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 7日运行率</span><span class="meta-value">${uptimeRatio.toFixed(2)}%</span></div>
-                 <div class="meta-item"><span class="meta-label"><i class="fas fa-stopwatch"></i> 当前响应</span><span class="meta-value">${monitor.response_times.length > 0 ? monitor.response_times[0].value + 'ms' : 'N/A'}</span></div>
-              </div>
-              <div class="detail-chart-container">
-                <canvas id="detail-chart-${monitor.id}"></canvas>
+              <div class="service-details-content">
+                <div class="service-meta">
+                  <div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 7日运行率</span><span class="meta-value">${uptimeRatio.toFixed(2)}%</span></div>
+                  <div class="meta-item"><span class="meta-label"><i class="fas fa-stopwatch"></i> 当前响应</span><span class="meta-value">${monitor.response_times.length > 0 ? monitor.response_times[0].value + 'ms' : 'N/A'}</span></div>
+                </div>
+                <div class="detail-chart-container"><canvas id="detail-chart-${monitor.id}"></canvas></div>
               </div>
             </div>
           </div>`;
       }).join('');
       
       document.getElementById('services-container').innerHTML = servicesHTML || '<div class="loading"><p>没有找到网站监控服务。</p></div>';
-      
       document.getElementById('status-up').textContent = upCount;
       document.getElementById('status-down').textContent = downCount;
       document.getElementById('avg-uptime').textContent = monitors.length > 0 ? `${(totalUptime / monitors.length).toFixed(2)}%` : '0%';
-      
       renderOverviewCharts(monitors, { up: upCount, warning: warningCount, down: downCount });
     }
 
-    // --- 新增：展开/收起并动态创建图表的函数 ---
+    // --- 图表相关函数 ---
+
     function toggleDetailChart(monitorId) {
-        const card = document.getElementById(`monitor-card-${monitorId}`);
-        const isExpanded = card.classList.toggle('expanded');
-        
-        if (isExpanded) {
-            const monitor = monitorDataCache.find(m => m.id === monitorId);
-            if (monitor && monitor.response_times) {
-                createDetailChart(monitor);
-            }
-        }
+      const card = document.getElementById(`monitor-card-${monitorId}`);
+      const isExpanded = card.classList.toggle('expanded');
+      if (isExpanded) {
+        const monitor = monitorDataCache.find(m => m.id === monitorId);
+        if (monitor && monitor.response_times) createDetailChart(monitor);
+      }
     }
 
-    // --- 新增：为单个监控项创建详细响应时间图表 ---
+    // --- 【核心修改】为单个监控项创建带异常标记的图表 ---
     function createDetailChart(monitor) {
         const canvasId = `detail-chart-${monitor.id}`;
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        const ctx = document.getElementById(canvasId)?.getContext('2d');
+        if (!ctx) return;
 
-        // 销毁可能存在的旧图表
-        if (Chart.getChart(ctx)) {
-            Chart.getChart(ctx).destroy();
-        }
+        if (Chart.getChart(ctx)) Chart.getChart(ctx).destroy();
         
-        const chartData = monitor.response_times.map(rt => ({
-            x: rt.datetime * 1000, // 转换为毫秒时间戳
-            y: rt.value
-        })).reverse(); // API返回的是从新到旧，反转一下
+        const chartData = monitor.response_times.map(rt => ({ x: rt.datetime * 1000, y: rt.value })).reverse();
+        
+        // --- 新增：为每个数据点定义颜色和大小 ---
+        const pointBackgroundColors = chartData.map(d => d.y > RESPONSE_TIME_THRESHOLD ? 'rgba(244, 67, 54, 1)' : 'rgba(30, 136, 229, 0.7)');
+        const pointRadii = chartData.map(d => d.y > RESPONSE_TIME_THRESHOLD ? 4 : 1.5);
 
         new Chart(ctx, {
             type: 'line',
@@ -195,42 +186,60 @@
                 datasets: [{
                     label: '响应时间 (ms)',
                     data: chartData,
-                    borderColor: 'rgba(30, 136, 229, 0.7)',
+                    borderColor: 'rgba(30, 136, 229, 0.5)',
                     backgroundColor: 'rgba(30, 136, 229, 0.1)',
                     borderWidth: 2,
-                    pointRadius: 1,
                     tension: 0.3,
-                    fill: true
+                    fill: true,
+                    // --- 应用动态颜色和大小 ---
+                    pointBackgroundColor: pointBackgroundColors,
+                    pointRadius: pointRadii,
+                    pointHoverRadius: 6,
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
-                        title: { display: true, text: '时间 (过去24小时)' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: '响应时间 (ms)' }
-                    }
+                    x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#eee' } }
                 },
-                plugins: { legend: { display: false } }
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` 响应时间: ${context.parsed.y} ms`;
+                            }
+                        }
+                    }
+                }
             }
         });
     }
 
-    // --- 修改：重命名为总览图表函数 ---
     function renderOverviewCharts(monitors, counts) {
-      if (statusChartInstance) statusChartInstance.destroy();
-      if (responseTimeChartInstance) responseTimeChartInstance.destroy();
-      // ... (此函数内部逻辑未变，只是重命名) ...
-      const statusCtx = document.getElementById('statusChart').getContext('2d');
-      statusChartInstance = new Chart(statusCtx, { type: 'doughnut', data: { labels: ['正常', '警告', '故障'], datasets: [{ data: [counts.up, counts.warning, counts.down], backgroundColor: [ 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)', 'rgba(244, 67, 54, 0.8)' ], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
-      const responseCtx = document.getElementById('responseTimeChart').getContext('2d');
-      responseTimeChartInstance = new Chart(responseCtx, { type: 'bar', data: { labels: monitors.map(m => m.friendly_name.substring(0, 12) + (m.friendly_name.length > 12 ? '...' : '')), datasets: [{ label: '响应时间 (ms)', data: monitors.map(m => m.response_times && m.response_times.length > 0 ? m.response_times[0].value : 0), backgroundColor: 'rgba(30, 136, 229, 0.7)', borderColor: 'rgba(30, 136, 229, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+        // ... (此函数内部逻辑未变) ...
+        let statusChartInstance = Chart.getChart('statusChart');
+        if(statusChartInstance) statusChartInstance.destroy();
+        let responseTimeChartInstance = Chart.getChart('responseTimeChart');
+        if(responseTimeChartInstance) responseTimeChartInstance.destroy();
+        
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, { type: 'doughnut', data: { labels: ['正常', '警告', '故障'], datasets: [{ data: [counts.up, counts.warning, counts.down], backgroundColor: [ 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)', 'rgba(244, 67, 54, 0.8)' ], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+        
+        const responseCtx = document.getElementById('responseTimeChart').getContext('2d');
+        new Chart(responseCtx, { type: 'bar', data: { labels: monitors.map(m => m.friendly_name.substring(0, 12) + (m.friendly_name.length > 12 ? '...' : '')), datasets: [{ label: '响应时间 (ms)', data: monitors.map(m => m.response_times && m.response_times.length > 0 ? m.response_times[0].value : 0), backgroundColor: 'rgba(30, 136, 229, 0.7)', borderColor: 'rgba(30, 136, 229, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+    }
+
+    // --- 应用程序启动逻辑 ---
+    async function fetchMonitors() {
+      try {
+        const response = await fetch(PROXY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-cache' });
+        if (!response.ok) throw new Error(`API代理请求失败: ${response.status}`);
+        const data = await response.json();
+        if (data.stat !== 'ok') throw new Error(`API 返回错误: ${data.error?.message || '未知'}`);
+        return data;
+      } catch (error) { console.error('获取监控数据失败:', error); showError(error.message); return null; }
     }
     
     function showError(message) { document.getElementById('services-container').innerHTML = `<div class="error-box"><div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div><h2 class="error-title">加载数据失败</h2><p class="error-desc">${message}</p></div>`; }
@@ -240,19 +249,6 @@
       if (data) renderMonitors(data);
     }
     document.addEventListener('DOMContentLoaded', () => { init(); document.getElementById('refresh-btn').addEventListener('click', init); setInterval(init, 5 * 60 * 1000); });
-    
-    // fetchMonitors and other functions need to be here, I'm omitting them for brevity but they should be the same as your previous version.
-    // The previous JS code for fetchMonitors, showError, init and the event listeners should be included here.
-    // Make sure the fetchMonitors function is defined as in previous examples.
-    async function fetchMonitors() {
-      try {
-        const response = await fetch(PROXY_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-        if (!response.ok) throw new Error(`API代理请求失败: ${response.status} ${response.statusText}`);
-        const data = await response.json();
-        if (data.stat !== 'ok') throw new Error(`UptimeRobot API 返回错误: ${data.error?.message || '未知错误'}`);
-        return data;
-      } catch (error) { console.error('获取监控数据失败:', error); showError(error.message); return null; }
-    }
   </script>
 </body>
 </html>
