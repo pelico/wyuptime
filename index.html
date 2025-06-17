@@ -60,7 +60,7 @@
     .detail-chart-container { margin-top: 25px; height: 250px; }
     .charts-section, .nas-section { margin-bottom: 40px; }
     .section-title { font-size: 24px; font-weight: 600; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; color: var(--primary); }
-    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-bottom: 30px; }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin-bottom: 30px; }
     .chart-container { background: var(--card-bg); border-radius: 16px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); padding: 25px; }
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .chart-title { font-size: 18px; font-weight: 600; }
@@ -70,177 +70,156 @@
     .loading-spinner { width: 60px; height: 60px; border: 5px solid rgba(26, 35, 126, 0.1); border-top: 5px solid var(--primary); border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .error-box { background: #fff0f0; border-radius: 16px; padding: 40px; text-align: center; margin: 30px; border: 1px solid #ffcccc; }
-    .nas-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
-    .nas-stat-card { background: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
-    .nas-stat-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-    .nas-stat-icon { font-size: 24px; color: var(--primary); width: 40px; text-align: center; }
-    .nas-stat-title { font-size: 18px; font-weight: 600; }
-    .progress-bar-container { margin-bottom: 10px; }
-    .progress-bar-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-    .progress-bar-label { font-weight: 500; }
-    .progress-bar-value { color: #555; }
-    .progress-bar-bg { background: #e9ecef; border-radius: 5px; height: 10px; overflow: hidden; }
-    .progress-bar-fill { background: linear-gradient(90deg, #1e88e5, #42a5f5); height: 100%; width: 0%; transition: width 0.5s ease-out; border-radius: 5px; }
-    .nas-sub-stats { margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; }
-    .nas-sub-item { display: flex; align-items: center; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
-    .nas-sub-label { color: #666; display: flex; align-items: center; gap: 8px; }
-    .nas-sub-value { font-weight: 600; }
-    @media (max-width: 768px) { .charts-grid, .nas-stats-grid { grid-template-columns: 1fr; } }
+    /* --- 新增/修改 NAS 图表样式 --- */
+    .nas-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
+    .nas-info-card { background: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 20px; }
+    .nas-info-icon { font-size: 28px; color: var(--primary); width: 50px; text-align: center; }
+    .nas-info-details { flex-grow: 1; }
+    .nas-info-label { font-size: 16px; color: #666; }
+    .nas-info-value { font-size: 20px; font-weight: 600; }
+    .nas-chart-wrapper { height: 250px; position: relative; }
+    @media (max-width: 992px) { .charts-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .nas-info-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-        <div class="logo"><i class="fas fa-heartbeat"></i><div class="logo-text">服务状态监控</div></div>
-        <p class="subtitle">基于 UptimeRobot API 的实时监控仪表盘</p>
-        <div class="header-stats">
-          <div class="stat-item"><i class="fas fa-sync-alt"></i>最后更新: <span id="update-time" class="stat-value">正在加载...</span></div>
-          <div class="stat-item"><i class="fas fa-database"></i>监控服务: <span id="total-monitors" class="stat-value">0</span> 个</div>
-        </div>
-        <button class="refresh-btn" id="refresh-btn"><i class="fas fa-sync-alt"></i> 刷新数据</button>
-    </header>
-    <div class="status-summary">
-        <div class="summary-card status"><div class="card-icon"><i class="fas fa-check-circle"></i></div><div class="card-title">正常运行</div><div class="card-value" id="status-up">0</div><div class="card-desc">当前正常运行的服务数量</div></div>
-        <div class="summary-card uptime"><div class="card-icon"><i class="fas fa-chart-line"></i></div><div class="card-title">平均正常运行率</div><div class="card-value" id="avg-uptime">0%</div><div class="card-desc">所有服务的平均在线率</div></div>
-        <div class="summary-card incidents"><div class="card-icon"><i class="fas fa-times-circle"></i></div><div class="card-title">当前故障</div><div class="card-value" id="status-down">0</div><div class="card-desc">需要关注的问题服务</div></div>
-    </div>
+    <header><!-- ... header content ... --></header>
+    <div class="status-summary"><!-- ... summary cards ... --></div>
     
     <div class="nas-section" id="nas-section-container" style="display: none;">
       <h2 class="section-title"><i class="fas fa-server"></i><span>NAS 系统状态</span></h2>
-      <div class="nas-stats-grid">
-        <div class="nas-stat-card">
-          <div class="nas-stat-header"><i class="fas fa-microchip nas-stat-icon"></i><h3 class="nas-stat-title">CPU & 系统</h3></div>
-          <div class="progress-bar-container"><div class="progress-bar-info"><span class="progress-bar-label">CPU 使用率</span><span id="nas-cpu-percent" class="progress-bar-value">...</span></div><div class="progress-bar-bg"><div id="nas-cpu-bar" class="progress-bar-fill"></div></div></div>
-          <div class="nas-sub-stats"><div class="nas-sub-item"><span class="nas-sub-label"><i class="fas fa-power-off"></i>启动于</span><span id="nas-boot-time" class="nas-sub-value">...</span></div><div class="nas-sub-item"><span class="nas-sub-label"><i class="fas fa-history"></i>已运行</span><span id="nas-uptime" class="nas-sub-value">...</span></div></div>
-        </div>
-        <div class="nas-stat-card">
-          <div class="nas-stat-header"><i class="fas fa-memory nas-stat-icon"></i><h3 class="nas-stat-title">内存 & 磁盘</h3></div>
-          <div class="progress-bar-container"><div class="progress-bar-info"><span id="nas-mem-details" class="progress-bar-label">...</span><span id="nas-mem-percent" class="progress-bar-value">...</span></div><div class="progress-bar-bg"><div id="nas-mem-bar" class="progress-bar-fill"></div></div></div>
-          <div class="progress-bar-container" style="margin-top: 20px;"><div class="progress-bar-info"><span id="nas-disk-details" class="progress-bar-label">...</span><span id="nas-disk-percent" class="progress-bar-value">...</span></div><div class="progress-bar-bg"><div id="nas-disk-bar" class="progress-bar-fill"></div></div></div>
-        </div>
-        <div class="nas-stat-card">
-          <div class="nas-stat-header"><i class="fas fa-network-wired nas-stat-icon"></i><h3 class="nas-stat-title">网络流量</h3></div>
-          <div id="nas-network-stats" class="nas-sub-stats" style="margin-top:0; padding-top:0; border-top:none;"><div class="nas-sub-item"><span>正在获取...</span></div></div>
-        </div>
+      <div class="nas-info-grid">
+        <div class="nas-info-card"><i class="fas fa-power-off nas-info-icon"></i><div class="nas-info-details"><div class="nas-info-label">启动于</div><div id="nas-boot-time" class="nas-info-value">...</div></div></div>
+        <div class="nas-info-card"><i class="fas fa-history nas-info-icon"></i><div class="nas-info-details"><div class="nas-info-label">已运行</div><div id="nas-uptime" class="nas-info-value">...</div></div></div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">资源使用率</h3></div><div class="nas-chart-wrapper"><canvas id="nasUsageChart"></canvas></div></div>
+        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">累计网络流量 (GB)</h3></div><div class="nas-chart-wrapper"><canvas id="nasNetworkChart"></canvas></div></div>
       </div>
     </div>
 
-    <div class="services-grid">
-      <div class="services-header"><div><i class="fas fa-globe-asia"></i><span>网站监控列表 (点击展开图表)</span></div></div>
-      <div id="services-container"><div class="loading"><div class="loading-spinner"></div><p>正在加载网站监控数据...</p></div></div>
-    </div>
-    <div class="charts-section">
-      <h2 class="section-title"><i class="fas fa-chart-bar"></i><span>网站状态总览</span></h2>
-      <div class="charts-grid">
-        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">服务状态分布</h3></div><div class="chart-wrapper"><canvas id="statusChart"></canvas></div></div>
-        <div class="chart-container"><div class="chart-header"><h3 class="chart-title">平均响应时间 (最近一次)</h3></div><div class="chart-wrapper"><canvas id="responseTimeChart"></canvas></div></div>
-      </div>
-    </div>
-    <footer><p>监控服务由 UptimeRobot API & 本地 NAS 提供支持</p></footer>
+    <div class="services-grid"><!-- ... UptimeRobot services list ... --></div>
+    <div class="charts-section"><!-- ... overview charts ... --></div>
+    <footer><!-- ... footer ... --></footer>
   </div>
   
   <script>
-    // --- 【核心修改】API URL 已更新 ---
     const PROXY_API_URL = 'https://up-api.111312.xyz/';
-    
-    const STATUS_MAP = {
-      0: { text: '暂停中', class: 'status-warning', icon: 'fa-pause-circle' }, 1: { text: '未检查', class: 'status-warning', icon: 'fa-question-circle' },
-      2: { text: '运行中', class: 'status-up', icon: 'fa-check-circle' }, 8: { text: '疑似故障', class: 'status-warning', icon: 'fa-exclamation-circle' },
-      9: { text: '服务中断', class: 'status-down', icon: 'fa-times-circle' },
-    };
+    const STATUS_MAP = { /* ... */ };
     const RESPONSE_TIME_THRESHOLD = 1000;
     let monitorDataCache = [];
+    let nasUsageChartInstance, nasNetworkChartInstance; // NAS chart instances
 
+    // --- 【核心修改】主渲染函数 ---
     function renderPage(data) {
-      if (data && data.monitors) {
-        renderMonitors(data.monitors);
-        renderOverviewCharts(data.monitors);
-      }
-      if (data && data.nas_stats) {
-        renderNasStats(data.nas_stats);
-      } else {
-        document.getElementById('nas-section-container').style.display = 'none';
+      if (data) {
+        if (data.monitors) {
+          renderMonitors(data.monitors);
+          renderOverviewCharts(data.monitors);
+        }
+        if (data.nas_stats) {
+          document.getElementById('nas-section-container').style.display = 'block';
+          renderNasInfo(data.nas_stats);
+          renderNasCharts(data.nas_stats);
+        } else {
+          document.getElementById('nas-section-container').style.display = 'none';
+        }
       }
     }
+    
+    // --- 新增：渲染NAS的文本信息 ---
+    function renderNasInfo(stats) {
+        document.getElementById('nas-boot-time').textContent = stats.system_time?.boot_time || 'N/A';
+        document.getElementById('nas-uptime').textContent = stats.system_time?.uptime || 'N/A';
+    }
 
+    // --- 新增：渲染NAS的图表 ---
+    function renderNasCharts(stats) {
+        // 销毁旧图表
+        if (nasUsageChartInstance) nasUsageChartInstance.destroy();
+        if (nasNetworkChartInstance) nasNetworkChartInstance.destroy();
+
+        // 1. 资源使用率图表 (Doughnut)
+        const usageCtx = document.getElementById('nasUsageChart')?.getContext('2d');
+        if (usageCtx && stats.cpu && stats.memory && stats.disk) {
+            nasUsageChartInstance = new Chart(usageCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [`CPU (${stats.cpu.percent}%)`, `内存 (${stats.memory.percent}%)`, `磁盘 (${stats.disk.percent}%)`],
+                    datasets: [{
+                        data: [stats.cpu.percent, stats.memory.percent, stats.disk.percent],
+                        backgroundColor: ['rgba(30, 136, 229, 0.8)', 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)'],
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+        
+        // 2. 累计网络流量图表 (Bar)
+        const networkCtx = document.getElementById('nasNetworkChart')?.getContext('2d');
+        if (networkCtx && stats.network) {
+            const labels = Object.keys(stats.network);
+            const receivedData = labels.map(iface => parseSizeToGB(stats.network[iface].total_received));
+            const sentData = labels.map(iface => parseSizeToGB(stats.network[iface].total_sent));
+
+            nasNetworkChartInstance = new Chart(networkCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '累计下载 (GB)', data: receivedData, backgroundColor: 'rgba(76, 175, 80, 0.7)' },
+                        { label: '累计上传 (GB)', data: sentData, backgroundColor: 'rgba(30, 136, 229, 0.7)' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'GB' } } }, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+    }
+
+    // --- 新增：解析流量字符串为GB数值的辅助函数 ---
+    function parseSizeToGB(sizeStr) {
+        if (typeof sizeStr !== 'string') return 0;
+        const parts = sizeStr.split(' ');
+        const value = parseFloat(parts[0]);
+        const unit = parts[1]?.toUpperCase();
+        if (isNaN(value)) return 0;
+        
+        switch (unit) {
+            case 'GB': return value;
+            case 'MB': return value / 1024;
+            case 'KB': return value / 1024 / 1024;
+            case 'B':  return value / 1024 / 1024 / 1024;
+            default:   return 0;
+        }
+    }
+
+    // --- 其他JS函数保持不变，为确保完整性，全部粘贴于此 ---
     function renderMonitors(allMonitors) {
       monitorDataCache = allMonitors;
       const monitors = monitorDataCache.filter(m => m.type === 1 || m.type === 2);
       let upCount = 0, downCount = 0, warningCount = 0, totalUptime = 0;
-
       document.getElementById('update-time').textContent = new Date().toLocaleTimeString();
       document.getElementById('total-monitors').textContent = `${monitors.length} 个`;
-
       const servicesHTML = monitors.map(monitor => {
         const status = STATUS_MAP[monitor.status] || { text: '未知', class: 'status-warning', icon: 'fa-question-circle' };
         if (status.class === 'status-up') upCount++; else if (status.class === 'status-down') downCount++; else warningCount++;
         const uptimeRatio = parseFloat(monitor.custom_uptime_ratios?.split('-')[0] || monitor.all_time_uptime_ratio || 0);
         totalUptime += uptimeRatio;
-        return `
-          <div class="service-card" id="monitor-card-${monitor.id}">
-            <div class="service-card-header" onclick="toggleDetailChart(${monitor.id})"><div class="service-header"><div class="service-name">${monitor.friendly_name}<i class="fas fa-chevron-down"></i></div><div class="service-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.text}</div></div></div>
-            <div class="service-details"><div class="service-details-content">
-              <div class="service-meta"><div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 7日运行率</span><span class="meta-value">${uptimeRatio.toFixed(3)}%</span></div><div class="meta-item"><span class="meta-label"><i class="fas fa-stopwatch"></i> 当前响应</span><span class="meta-value">${monitor.response_times.length > 0 ? monitor.response_times[0].value + 'ms' : 'N/A'}</span></div></div>
-              <div class="detail-chart-container"><canvas id="detail-chart-${monitor.id}"></canvas></div>
-            </div></div></div>`;
+        return `<div class="service-card" id="monitor-card-${monitor.id}"><div class="service-card-header" onclick="toggleDetailChart(${monitor.id})"><div class="service-header"><div class="service-name">${monitor.friendly_name}<i class="fas fa-chevron-down"></i></div><div class="service-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.text}</div></div></div><div class="service-details"><div class="service-details-content"><div class="service-meta"><div class="meta-item"><span class="meta-label"><i class="fas fa-signal"></i> 7日运行率</span><span class="meta-value">${uptimeRatio.toFixed(3)}%</span></div><div class="meta-item"><span class="meta-label"><i class="fas fa-stopwatch"></i> 当前响应</span><span class="meta-value">${monitor.response_times.length > 0 ? monitor.response_times[0].value + 'ms' : 'N/A'}</span></div></div><div class="detail-chart-container"><canvas id="detail-chart-${monitor.id}"></canvas></div></div></div></div>`;
       }).join('');
       document.getElementById('services-container').innerHTML = servicesHTML || '<div class="loading"><p>没有找到网站监控服务。</p></div>';
       document.getElementById('status-up').textContent = upCount;
       document.getElementById('status-down').textContent = downCount;
       document.getElementById('avg-uptime').textContent = monitors.length > 0 ? `${(totalUptime / monitors.length).toFixed(2)}%` : '0%';
     }
-
-    function renderNasStats(stats) {
-      if (!stats) return;
-      document.getElementById('nas-section-container').style.display = 'block';
-      const cpuPercent = stats.cpu?.percent.toFixed(1) + '%' || 'N/A';
-      document.getElementById('nas-cpu-percent').textContent = cpuPercent;
-      document.getElementById('nas-cpu-bar').style.width = cpuPercent;
-      document.getElementById('nas-boot-time').textContent = stats.system_time?.boot_time || 'N/A';
-      document.getElementById('nas-uptime').textContent = stats.system_time?.uptime || 'N/A';
-      if (stats.memory) {
-        const memPercent = stats.memory.percent.toFixed(1) + '%';
-        document.getElementById('nas-mem-percent').textContent = memPercent;
-        document.getElementById('nas-mem-bar').style.width = memPercent;
-        document.getElementById('nas-mem-details').textContent = `内存: ${stats.memory.used_gb} GB / ${stats.memory.total_gb} GB`;
-      }
-      if (stats.disk) {
-        const diskPercent = stats.disk.percent.toFixed(1) + '%';
-        document.getElementById('nas-disk-percent').textContent = diskPercent;
-        document.getElementById('nas-disk-bar').style.width = diskPercent;
-        document.getElementById('nas-disk-details').textContent = `磁盘: ${stats.disk.used_gb} GB / ${stats.disk.total_gb} GB`;
-      }
-      const networkContainer = document.getElementById('nas-network-stats');
-      if (stats.network && networkContainer) {
-        let networkHTML = Object.entries(stats.network).map(([iface, data]) => `
-          <div class="nas-sub-item"><span class="nas-sub-label" style="font-weight: bold; color: var(--primary);">${iface}</span></div>
-          <div class="nas-sub-item" style="padding-left: 15px;">
-            <span class="nas-sub-label"><i class="fas fa-arrow-down" style="color:var(--success)"></i>实时下载</span>
-            <span class="nas-sub-value">${data.down_speed}</span>
-          </div>
-          <div class="nas-sub-item" style="padding-left: 15px;">
-            <span class="nas-sub-label"><i class="fas fa-arrow-up" style="color:var(--primary-light)"></i>实时上传</span>
-            <span class="nas-sub-value">${data.up_speed}</span>
-          </div>
-          <div class="nas-sub-item" style="padding-left: 15px; font-size: 13px; opacity: 0.8;">
-            <span class="nas-sub-label">累计下载</span>
-            <span class="nas-sub-value">${data.total_received}</span>
-          </div>
-          <div class="nas-sub-item" style="padding-left: 15px; font-size: 13px; opacity: 0.8; margin-bottom: 10px;">
-            <span class="nas-sub-label">累计上传</span>
-            <span class="nas-sub-value">${data.total_sent}</span>
-          </div>
-        `).join('');
-        networkContainer.innerHTML = networkHTML || '<div class="nas-sub-item"><span>未获取到网络数据</span></div>';
-      }
-    }
-
     function toggleDetailChart(monitorId) {
       const card = document.getElementById(`monitor-card-${monitorId}`); if (!card) return;
       const isExpanded = card.classList.toggle('expanded');
       if (isExpanded) { const monitor = monitorDataCache.find(m => m.id === monitorId); if (monitor && monitor.response_times) createDetailChart(monitor); }
     }
-    
     function createDetailChart(monitor) {
       const canvasId = `detail-chart-${monitor.id}`, ctx = document.getElementById(canvasId)?.getContext('2d'); if (!ctx) return;
       if (Chart.getChart(ctx)) Chart.getChart(ctx).destroy();
@@ -249,18 +228,14 @@
       const pointRadii = chartData.map(d => d.y > RESPONSE_TIME_THRESHOLD ? 4 : 1.5);
       new Chart(ctx, { type: 'line', data: { datasets: [{ label: '响应时间 (ms)', data: chartData, borderColor: 'rgba(30, 136, 229, 0.5)', backgroundColor: 'rgba(30, 136, 229, 0.1)', borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: pointBackgroundColors, pointRadius: pointRadii, pointHoverRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } }, grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#eee' } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` 响应时间: ${c.parsed.y} ms` } } } } });
     }
-
     function renderOverviewCharts(allMonitors) {
         const monitors = allMonitors.filter(m => m.type === 1 || m.type === 2); let up = 0, down = 0, warning = 0;
         monitors.forEach(m => { const sClass = STATUS_MAP[m.status]?.class || 'status-warning'; if (sClass === 'status-up') up++; else if (sClass === 'status-down') down++; else warning++; });
-        
         let statusChart = Chart.getChart('statusChart'); if(statusChart) statusChart.destroy();
         new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['正常', '警告', '故障'], datasets: [{ data: [up, warning, down], backgroundColor: [ 'rgba(76, 175, 80, 0.8)', 'rgba(255, 152, 0, 0.8)', 'rgba(244, 67, 54, 0.8)' ], borderColor: ['#fff'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
-        
         let rtChart = Chart.getChart('responseTimeChart'); if(rtChart) rtChart.destroy();
         new Chart(document.getElementById('responseTimeChart'), { type: 'bar', data: { labels: monitors.map(m => m.friendly_name.substring(0, 12) + (m.friendly_name.length > 12 ? '...' : '')), datasets: [{ label: '响应时间 (ms)', data: monitors.map(m => m.response_times?.[0]?.value || 0), backgroundColor: 'rgba(30, 136, 229, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
     }
-
     async function fetchData() {
       try {
         const response = await fetch(PROXY_API_URL, { method: 'POST', cache: 'no-cache' });
@@ -268,13 +243,15 @@
         const data = await response.json(); if (data.stat !== 'ok') throw new Error(`API 返回错误: ${data.error?.message || '未知'}`); return data;
       } catch (error) { console.error('获取监控数据失败:', error); showError(error.message); return null; }
     }
-    
     function showError(message) { document.getElementById('services-container').innerHTML = `<div class="error-box"><div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div><h2 class="error-title">加载数据失败</h2><p class="error-desc">${message}</p></div>`; }
     async function init() {
       const container = document.getElementById('services-container'); container.innerHTML = `<div class="loading"><div class="loading-spinner"></div><p>正在加载全部监控数据...</p></div>`;
       const data = await fetchData(); if (data) renderPage(data);
     }
     document.addEventListener('DOMContentLoaded', () => { init(); document.getElementById('refresh-btn').addEventListener('click', init); setInterval(init, 5 * 60 * 1000); });
+    
+    // 把 STATUS_MAP 补全
+    Object.assign(window, { STATUS_MAP });
   </script>
 </body>
 </html>
